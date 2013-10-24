@@ -1,8 +1,8 @@
-# SendGrid WebAPI Scripts
+## SendGrid WebAPI Scripts
 
 These scripts perform a number of tasks using the [SendGrid WebAPI](http://sendgrid.com/docs/API_Reference/Web_API/index.html "SG WebAPI").
 
-### Requirements
+#### Requirements
 All of these scripts require:
 * A [Credential](http://sendgrid.com/docs/User_Guide/multiple_credentials.html "SG Credentials") that has API permissions.
 * The folder ./logs , for logging logs.
