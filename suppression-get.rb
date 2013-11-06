@@ -4,7 +4,7 @@
 #   Credential for account with API permission.
 #   Folder named 'logs' in same folder as script.
 #
-# v2.0, 24 Oct 2013, Jacob @ SendGrid
+# v2.1, 06 Nov 2013, Jacob @ SendGrid
 
 require 'json'
 require 'net/https'
@@ -35,7 +35,7 @@ timestamp = Time.now.strftime("%y%m%d-%H.%M.%S")
 log("api_user: #{api_user}", true)
 
 #get suppressions to check
-puts "\nPlease provide the suppression lists to check, using only the 1-letter reference, as a string.\n b : bounce. i : invalidemails. u : unsubscribes. s : spamreports.\n Ex: bius"
+puts "\nPlease provide the suppression lists to check, using only the 1-letter reference, as a string.\n b : Bounces. i : Invalidemails. u : Unsubscribes. s : Spamreports. k : BlocKs.\n Ex: biusk"
 supIn = gets.chomp.downcase
 
 # build suppression array
@@ -44,6 +44,7 @@ suppressions << "bounces" if supIn.include? "b"
 suppressions << "invalidemails" if supIn.include? "i"
 suppressions << "unsubscribes" if supIn.include? "u"
 suppressions << "spamreports" if supIn.include? "s"
+suppressions << "blocks" if supIn.include? "k"
 log("Suppression lists to check: #{suppressions}")
 
 suppressions.each do |sup|
