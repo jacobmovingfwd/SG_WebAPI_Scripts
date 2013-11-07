@@ -48,7 +48,7 @@ log("Total Addresses to Remove: #{total}")
 log("Addresses: #{addresses}", true)
 
 #get suppressions to check
-puts "\nPlease provide the suppression lists to check, using only the 1-letter reference, as a string.\n b : bounce. i : invalidemails. u : unsubscribes. s : spamreports.\n Ex: bius"
+puts "\nPlease provide the suppression lists to check, using only the 1-letter reference, as a string.\n b : Bounces. i : Invalidemails. u : Unsubscribes. s : Spamreports.\n Ex: bius"
 supIn = gets.chomp.downcase
 
 # build suppression array
@@ -59,10 +59,13 @@ suppressions << "unsubscribes" if supIn.include? "u"
 suppressions << "spamreports" if supIn.include? "s"
 log("Suppression lists to check: #{suppressions}")
 
+clear_count = {"bounces" => 0, "invalidemails" => 0, "unsubscribes" => 0, "spamreports" => 0}
+
 #check lists
 addresses.each do |email|
 	suppressions.each do |sup|
 		log("Searching #{sup} for #{email}...")
+		out_csv = "#{api_user}-#{sup}_removed_#{timestamp}.csv"
 	
 		answer={}
 		#get bounces
@@ -79,11 +82,21 @@ addresses.each do |email|
 		answer = JSON.parse(response.body)
 		#log raw response
 		log("Answer: #{answer}")
+
+		#log address to CSV
+    if answer["message"] == "success"
+    	clear_count[sup] += 1
+
+      CSV.open(out_csv, "a+"){|csv| csv << [addr]}
+      log("#{addr} written to CSV.")
+    end
+  log("Removed so far: #{clear_count}")
 	end
 	log("1 second pause...")
 	sleep(1)
 end
 
+log("Total Removed: #{clear_count}")
 log("Script done.")
 #close log files
 @rawLog.close()

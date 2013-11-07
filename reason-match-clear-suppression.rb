@@ -45,6 +45,8 @@ suppressions << "bounces" if supIn.include? "b"
 suppressions << "invalidemails" if supIn.include? "i"
 log("Suppression lists to check: #{suppressions}")
 
+clear_count = {"bounces" => 0, "invalidemails" => 0}
+
 #get Reason to check for
 puts "\nPlease provide the reason to check for."
 reason = gets.to_s.chomp.strip.downcase
@@ -108,10 +110,13 @@ suppressions.each do |sup|
 
       #log address to CSV
       if answer["message"] == "success"
-          CSV.open(out_csv, "a+"){|csv| csv << [addr]}
-          log("#{addr} written to CSV.")
-      end
+        clear_count[sup] += 1
 
+        CSV.open(out_csv, "a+"){|csv| csv << [addr]}
+        log("#{addr} written to CSV.")
+      end
+      log("Removed so far: #{clear_count}")
+      
       log("Waiting 1 second after delete...")
       sleep(1)
     end
