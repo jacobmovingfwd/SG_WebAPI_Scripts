@@ -6,7 +6,7 @@
 #    Folder named 'logs' in same folder as script.
 #    CSV containing email addresses in first column. All other columns will be ignored.
 #
-# v2.0, 24 Oct 2013, Jacob @ SendGrid
+# v2.1, 19 Mar 2014, Jacob @ SendGrid
 
 require 'json'
 require 'net/https'
@@ -46,14 +46,14 @@ addresses = []
 CSV.foreach(csv){|row| addresses << row[0]}
 total = addresses.count
 log("Total Addresses to Add: #{total}")
-log(addresses)
+log(addresses, true)
 
 offset = 0
-emails = ""
 
 while offset < total do 
-  total > 100? spread = 100 : spread = total
-  log("Uploading addresses #{offset} through #{offset + spread}")
+  emails = ""
+  total > 100 ? spread = 100 : spread = total
+  log("Uploading addresses #{offset} through #{offset + spread} of #{total} total. #{total - (offset+spread)} Remaining")
   offset += spread
 
   while spread > 0
@@ -68,7 +68,8 @@ while offset < total do
   log("Emails being added: #{emails}", true)
 
   #delete unsub
-  uri = URI.parse("https://sendgrid.com/api/unsubscribes.add.json?&api_user=#{api_user}&api_key=#{api_key}#{emails}")
+  uri = URI.encode("https://sendgrid.com/api/unsubscribes.add.json?&api_user=#{api_user}&api_key=#{api_key}#{emails}")
+  uri = URI.parse(uri)
   http = Net::HTTP.new(uri.host, 443)
   http.use_ssl = true
   http.verify_mode = OpenSSL::SSL::VERIFY_NONE
@@ -81,8 +82,8 @@ while offset < total do
   #log response
   log(answer)
 
-  log("Waiting 3 seconds after delete...")
-  sleep(3)
+  log("Waiting 1 second after upload...")
+  sleep(1)
 end
 
 log("Script done.")

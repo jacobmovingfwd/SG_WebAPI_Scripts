@@ -2,9 +2,8 @@
 #
 # Requires:
 #   Credential for account with API permission.
-#   Folder named 'logs' in same folder as script.
 #
-# v2.1, 06 Nov 2013, Jacob @ SendGrid
+# v2.2, 19 Mar 2014, Jacob @ SendGrid
 
 require 'json'
 require 'net/https'
@@ -15,7 +14,6 @@ def log(txt, silent = false)
   timestamp = Time.now.strftime("%y%m%d-%H.%M.%S.%L")
   txt = txt.to_s
   puts "#{timestamp}: " + txt unless silent
-  @rawLog.write("#{timestamp}: " + txt + "\n")
 end
 
 puts "This is the SendGrid Supression List Retrieval script."
@@ -30,7 +28,6 @@ api_key = gets.chomp
 
 #open log files
 timestamp = Time.now.strftime("%y%m%d-%H.%M.%S")
-@rawLog = File.new("logs/suppression-get_#{api_user}_#{timestamp}.log", "a+")
 
 log("api_user: #{api_user}", true)
 
@@ -126,4 +123,4 @@ end
 
 log("Script done.")
 #close log files
-@rawLog.close()
+

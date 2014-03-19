@@ -3,9 +3,10 @@
 # Requires:
 #   Credential for account with API permission.
 #   CSV containing email addresses in first column. All other columns will be ignored.
-#   Folder named 'logs' in same folder as script.
 #
-# v2.0, 24 Oct 2013, Jacob @ SendGrid
+#   If you want to log the addresses removed, un-comment lines 67, 89, 90.
+#
+# v2.1, 19 Mar 2014, Jacob @ SendGrid
 
 require 'json'
 require 'net/https'
@@ -16,7 +17,6 @@ def log(txt, silent = false)
 	timestamp = Time.now.strftime("%y%m%d-%H.%M.%S.%L")
   txt = txt.to_s
   puts "#{timestamp}: " + txt unless silent
-  @rawLog.write("#{timestamp}: " + txt + "\n")
 end
 
 puts "This is the SendGrid address-based Suppression Match & Remove script."
@@ -31,7 +31,6 @@ api_key = gets.chomp
 
 #open log files
 timestamp = Time.now.strftime("%y%m%d-%H.%M.%S")
-@rawLog = File.new("logs/address-match-clear_#{api_user}_#{timestamp}.log", "a+")
 
 log("api_user: #{api_user}", true)
 
@@ -65,7 +64,7 @@ clear_count = {"bounces" => 0, "invalidemails" => 0, "unsubscribes" => 0, "spamr
 addresses.each do |email|
 	suppressions.each do |sup|
 		log("Searching #{sup} for #{email}...")
-		out_csv = "#{api_user}-#{sup}_removed_#{timestamp}.csv"
+		##out_csv = "#{api_user}-#{sup}_removed_#{timestamp}.csv"
 	
 		answer={}
 		#get bounces
@@ -87,8 +86,8 @@ addresses.each do |email|
     if answer["message"] == "success"
     	clear_count[sup] += 1
 
-      CSV.open(out_csv, "a+"){|csv| csv << [addr]}
-      log("#{addr} written to CSV.")
+      ##CSV.open(out_csv, "a+"){|csv| csv << [addr]}
+      ##log("#{addr} written to CSV.")
     end
   log("Removed so far: #{clear_count}")
 	end
@@ -99,4 +98,3 @@ end
 log("Total Removed: #{clear_count}")
 log("Script done.")
 #close log files
-@rawLog.close()

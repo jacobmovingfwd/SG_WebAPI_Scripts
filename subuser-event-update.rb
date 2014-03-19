@@ -1,13 +1,13 @@
 # Runs through all of an Parent's subusers, and updates subusers Event Webhook to version 3.
 # DOES NOT update Parent.
 # Settings push call requires all settings to be defined. This script properly queries each account's settings, and sends them back, with the version updated only.
-# Could easily be modified to set all subusers to particular settings.
+# Can easily be modified to set all subusers to particular settings.
 #
 # Requires:
 #    Credential for Parent account with API permission.
 #    Folder named 'logs' in same folder as script.
 #
-# v2.0, 24 Oct 2013, Jacob @ SendGrid
+# v2.1, 19 Mar 2014, Jacob @ SendGrid
 
 require 'csv'
 require 'json'
@@ -82,7 +82,7 @@ print "Please provide the Parent API Key: "
 timestamp = Time.now.strftime("%y%m%d-%H.%M.%S")
 @rawLog = File.new("logs/subuser-event-update_#{@api_user}_#{timestamp}.log", "a+")
 
-log("api_user: #{api_user}", true)
+log("api_user: #{@api_user}", true)
 
 subusers = getSubusers()
 
