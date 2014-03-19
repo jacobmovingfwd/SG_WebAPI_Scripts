@@ -18,4 +18,6 @@ All of these scripts require:
 -----
 Please feel free to PR additional scripts as you make them.
 
-Please make sure all scripts are clear or any account-identifying information, follow the logging guide, and have sleeps.
+Please make sure all scripts are clear of any account-identifying information, follow the logging guide, and have sleeps.
+
+These are provided as-is, with no guarantee that they'll work with the current implementation of the SendGrid API. Please review them before executing, as they can & will change records on your account.
