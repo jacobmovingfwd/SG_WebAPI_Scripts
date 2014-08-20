@@ -51,7 +51,7 @@ suppressions.each do |sup|
 	#log checking list
 	log("Getting #{sup}...")
 
-  answer={}
+  #answer={}
   #get count of list for cycling through
   uri = URI.parse("https://sendgrid.com/api/#{sup}.count.json?api_user=#{api_user}&api_key=#{api_key}")
   http = Net::HTTP.new(uri.host, 443)
@@ -66,58 +66,59 @@ suppressions.each do |sup|
 
   #parse response
   answer = JSON.parse(response.body)
-  #log raw response
-  log("Answer: #{answer}", true)
 
-  offset_max = answer["count"]
-  log("Total Addresses on List: #{offset_max}")
+  if answer["error"]
+    log("Answer: #{answer}")
+  else
+    offset_max = answer["count"]
+    log("Total Addresses on List: #{offset_max}")
 
-  offset = 0	
-  until offset >= offset_max
-    log("Offset: #{offset}, Max: #{offset_max}, Remaining: #{(offset_max.to_i - offset.to_i)}")
-	  answer={}
-	  #get addresses ##UPDATE
-	  uri = URI.parse("https://sendgrid.com/api/#{sup}.get.json?&api_user=#{api_user}&api_key=#{api_key}&date=1&offset=#{offset}&limit=1000")
-	  http = Net::HTTP.new(uri.host, 443)
-    http.read_timeout = 5000
-	  http.use_ssl = true
-	  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    offset = 0	
+    until offset >= offset_max
+      log("Offset: #{offset}, Max: #{offset_max}, Remaining: #{(offset_max.to_i - offset.to_i)}")
+	    answer={}
+      #get addresses ##UPDATE
+	    uri = URI.parse("https://sendgrid.com/api/#{sup}.get.json?&api_user=#{api_user}&api_key=#{api_key}&date=1&offset=#{offset}&limit=1000")
+	    http = Net::HTTP.new(uri.host, 443)
+      http.read_timeout = 5000
+	    http.use_ssl = true
+	    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
-	  #get response
-	  request = Net::HTTP::Get.new(uri.request_uri)
-	  response = http.request(request)
-    #puts response
+	    #get response
+	    request = Net::HTTP::Get.new(uri.request_uri)
+	    response = http.request(request)
+      
+	    #parse response
+	    answer = JSON.parse(response.body)
+	    #log raw response
+      log("Answer: #{answer}", true)
 
-	  #parse response
-	  answer = JSON.parse(response.body)
-	  #log raw response
-    log("Answer: #{answer}", true)
+      headers = %w{email created status reason}
 
-    headers = %w{email created status reason}
-
-    #convert response to CSV
-    log("writing to CSV...")
-    answer.each do |hash|
-      if !File.exist?(out_csv)
-        CSV.open(out_csv, "a+") do |csv|
-          csv << headers
-          csv << headers.map { |h| hash[h] }
-        end
-      #if csv does exist, append data
-      else
-        CSV.open(out_csv, "a+") do |csv|
-          csv << headers.map { |h| hash[h] }
+      #convert response to CSV
+      log("writing to CSV...")
+      answer.each do |hash|
+        if !File.exist?(out_csv)
+          CSV.open(out_csv, "a+") do |csv|
+            csv << headers
+            csv << headers.map { |h| hash[h] }
+          end
+        #if csv does exist, append data
+        else
+          CSV.open(out_csv, "a+") do |csv|
+            csv << headers.map { |h| hash[h] }
+          end
         end
       end
+
+      offset += 1000
+      sleep(1)
     end
 
-    offset += 1000
-    sleep(1)
-  end
-
-  if offset_max > 0
-    log("Tarring CSV...")
-    log(%x(tar -czvf #{out_csv}.tgz #{out_csv}))
+    if offset_max > 0
+      log("Tarring CSV...")
+     log(%x(tar -czvf #{out_csv}.tgz #{out_csv}))
+    end
   end
 end
 
