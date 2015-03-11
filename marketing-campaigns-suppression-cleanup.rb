@@ -110,25 +110,6 @@ def supGet(sup)
 	return emails
 end
 
-def contactRemove(emails, sup)
-  response = ApiToJSON.delete("https://api.sendgrid.com/v3/contactdb/recipients", emails)
-  puts response
-
-  #log errors and move on
-  unless response[:code] == "204"
-    errLog(response[:body])
-    return response[:code]
-  end
-
-  #if successfull, increment clear_count, return full response
-
-
-
-
-end
-
-
-
 
 
 # Initialize. Get user account info, get option start date as Epoch timestamp
