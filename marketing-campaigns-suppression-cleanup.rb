@@ -12,7 +12,6 @@ require 'json'
 require 'httparty'
 require 'uri'
 require 'csv'
-#require 'pry'
 
 def timestamp(x = nil)
 	timestamp = Time.now.to_i if x == 1
@@ -34,7 +33,7 @@ module HttpToJSON
   include HTTParty
   base_uri 'https://api.sendgrid.com'
   format :json
-  headers 'Accept' => 'application/json'
+  headers 'Accept' => 'application/json', 'Content-Type' => 'application/json'
   #debug_output
 end
 
@@ -58,15 +57,13 @@ def supGet(sup)
     	response = HttpToJSON.get("/api/#{sup}.get.json?&api_user=#{@api_user}&api_key=#{@api_key}#{@suppression_start}&offset=#{offset}&limit=1000")
       response.parsed_response.each do |a| # since SG APIv1 has the wrong Content-Type header
         emails << a["email"].to_s
-        @total_count[sup.to_sym] += 1
+        @total_count[sup] += 1
       end
     	offset += 1000
 		end
 	end
 	return emails
 end
-
-
 
 # Initialize. Get user account info, get option start date as Epoch timestamp
 script_start = timestamp(1)
@@ -89,37 +86,38 @@ end
 
 @total_count = {bounces: 0, invalidemails: 0, unsubscribes: 0, spamreports: 0}
 @clear_count = {bounces: 0, invalidemails: 0, unsubscribes: 0, spamreports: 0}
+
 #iterate through suppressions lists
-suppressions = %w[bounces invalidemails unsubscribes spamreports]
+suppressions = %i(bounces invalidemails unsubscribes spamreports)
+#suppressions = %i(unsubscribes)
 
 #for each suppression list, iterate through in 1000 address steps
 suppressions.each do |sup|
 	log("Working through #{sup}...")
 	email_array = supGet(sup)
-  sup_total = @total_count[sup.to_sym]
+  sup_total = @total_count[sup]
   log("Total addresses logged from #{sup}: #{sup_total}")
 
 	#for each address chunk, remove from contact db
-  email_array.each_slice(100) do |e| 
-    
-    #HttpToJSON.auth(@api_user, @api_key)
+  email_array.each_slice(1000) do |e| 
+
     response = HttpToJSON.delete("/v3/contactdb/recipients", {body: e.to_json, basic_auth: {username: @api_user, password: @api_key}})
-    puts response.body, response.code, response.message, response.headers.inspect
-
-    #if we hit rate limit, wait for reset
-    sleep( response.headers["X-RateLimit-Reset"].to_i - Time.now().to_i ) unless response.headers["X-RateLimit-Remaining"].nil? || response.headers["X-RateLimit-Remaining"] > 1
-
-    #log errors and move on
-    unless response.code == 204
+    
+    if response.code == 204
+      #if successful, increment clear_count, continue     
+      @clear_count[sup] += e.count
+    elsif response.code == 400 && response[:body] == "{\"errors\":[{\"message\":\"No recipients found\"}]}"
+        @clear_count[sup] += e.count
+    else
+      #otherwise, log errors and move on
       errLog(response[:body])
     end
 
-    #if successful, increment clear_count, continue
-
+    #if we hit rate limit, wait for reset
+    sleep( response.headers["X-RateLimit-Reset"].to_i - Time.now().to_i ) unless response.headers["X-RateLimit-Remaining"].nil? || response.headers["X-RateLimit-Remaining"] > 1
   end
-
 end
 
-#if an error, log the call and skip.
-
 #on complete, print log filename, number of errors, number of successes.
+script_end = timestamp(1)
+log("Finished. #{Time.at(script_end - script_start).utc.strftime("%H hours, %M minutes, %S seconds")} to complete. \nTotal addresses queried: #{@total_count} \nTotal addresses removed: #{@clear_count}")
