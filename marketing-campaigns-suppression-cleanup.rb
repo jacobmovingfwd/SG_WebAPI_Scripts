@@ -12,7 +12,7 @@ require 'json'
 require 'httparty'
 require 'uri'
 require 'csv'
-require 'pry'
+#require 'pry'
 
 def timestamp(x = nil)
 	timestamp = Time.now.to_i if x == 1
@@ -34,14 +34,14 @@ module HttpToJSON
   include HTTParty
   base_uri 'https://api.sendgrid.com'
   format :json
-  basic_auth 'username', 'password'
-  #debug_output
+  basic_auth @api_user, @api_key
+  headers 'Accept' => 'application/json'
+  debug_output
 end
 
 def supGet(sup)
 	emails = []
 	response = HttpToJSON.get("/api/#{sup}.count.json?api_user=#{@api_user}&api_key=#{@api_key}")
-  #puts response.body, response.code, response.message, response.headers.inspect
   answer = response.parsed_response # since SG APIv1 has the wrong Content-Type header
 
 	if answer["error"]
@@ -55,10 +55,8 @@ def supGet(sup)
    	until offset >= offset_max
    		log("List: #{sup}  Offset: #{offset}  Max: #{offset_max}  Remaining: #{(offset_max.to_i - offset.to_i)}")
    	
-   		#get addresses ##UPDATE
+   		#get addresses
     	response = HttpToJSON.get("/api/#{sup}.get.json?&api_user=#{@api_user}&api_key=#{@api_key}#{@suppression_start}&offset=#{offset}&limit=1000")
-    	puts response.body, response.code, response.message, response.headers.inspect
-      
       response.parsed_response.each do |a| # since SG APIv1 has the wrong Content-Type header
         emails << a["email"].to_s
         @total_count[sup.to_sym] += 1
@@ -84,10 +82,10 @@ if ARGV[0]
 	@suppression_start = data[:timestamp].nil? ? "" : "&start_time=#{Time.at(data[:timestamp].to_i).strftime("%Y-%m-%d")}" 
 else
 	print "\nPlease provide the API User: "
-	api_user = gets.chomp.downcase
+	@api_user = gets.chomp.downcase
 
 	print "Please provide the API Key: "
-	api_key = gets.chomp
+	@api_key = gets.chomp
 end
 
 @total_count = {bounces: 0, invalidemails: 0, unsubscribes: 0, spamreports: 0}
@@ -108,13 +106,14 @@ suppressions.each do |sup|
     response = HttpToJSON.delete("/v3/contactdb/recipients", query: e)
 
     #if we hit rate limit, wait for reset
-    puts response.body, response.code, response.message, response.headers.inspect 
+    #puts response.body, response.code, response.message, response.headers.inspect 
+    quit()
     #sleep( response[:reset] - Time.now() ) if response[:limit] <= 1
 
     #log errors and move on
-    unless response[:code] == "204"
-      errLog(response[:body])
-    end
+    #unless response[:code] == "204"
+    #  errLog(response[:body])
+    #end
 
     #if successful, increment clear_count, continue
 
