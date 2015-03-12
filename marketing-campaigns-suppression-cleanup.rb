@@ -34,9 +34,8 @@ module HttpToJSON
   include HTTParty
   base_uri 'https://api.sendgrid.com'
   format :json
-  basic_auth @api_user, @api_key
   headers 'Accept' => 'application/json'
-  debug_output
+  #debug_output
 end
 
 def supGet(sup)
@@ -103,17 +102,17 @@ suppressions.each do |sup|
 	#for each address chunk, remove from contact db
   email_array.each_slice(100) do |e| 
     
-    response = HttpToJSON.delete("/v3/contactdb/recipients", query: e)
+    #HttpToJSON.auth(@api_user, @api_key)
+    response = HttpToJSON.delete("/v3/contactdb/recipients", {body: e.to_json, basic_auth: {username: @api_user, password: @api_key}})
+    puts response.body, response.code, response.message, response.headers.inspect
 
     #if we hit rate limit, wait for reset
-    #puts response.body, response.code, response.message, response.headers.inspect 
-    quit()
-    #sleep( response[:reset] - Time.now() ) if response[:limit] <= 1
+    sleep( response.headers["X-RateLimit-Reset"].to_i - Time.now().to_i ) unless response.headers["X-RateLimit-Remaining"].nil? || response.headers["X-RateLimit-Remaining"] > 1
 
     #log errors and move on
-    #unless response[:code] == "204"
-    #  errLog(response[:body])
-    #end
+    unless response.code == 204
+      errLog(response[:body])
+    end
 
     #if successful, increment clear_count, continue
 
