@@ -7,10 +7,12 @@
 # takes an argument for a tmp file that has a JSON array of keys & values for api_user, api_key, and timestamp.
 # defaults to querying those if needed.
 
+require 'rubygems'
 require 'json'
-require 'net/https'
+require 'httparty'
 require 'uri'
 require 'csv'
+require 'pry'
 
 def timestamp(x = nil)
 	timestamp = Time.now.to_i if x == 1
@@ -26,6 +28,14 @@ end
 def errLog(txt)
 	log(txt)
 	File.write(@out_log.to_s, txt)
+end
+
+module HttpToJSON
+  include HTTParty
+  base_uri 'api.sendgrid.com'
+  format :json
+  basic_auth 'username', 'password'
+  debug_output
 end
 
 module ApiToJSON
@@ -83,8 +93,11 @@ end
 
 def supGet(sup)
 	emails = []
-	response = ApiToJSON.get("https://sendgrid.com/api/#{sup}.count.json?api_user=#{@api_user}&api_key=#{@api_key}")
-  answer = response[:body]
+	response = HttpToJSON.get("/api/#{sup}.count.json?api_user=#{@api_user}&api_key=#{@api_key}")
+  binding.pry()
+  puts response.body, response.code, response.message, response.headers.inspect
+  answer = JSON.parse(response.body)
+
 
 	if answer["error"]
    		errLog("Error: #{answer}\nskipping #{sup}.")
@@ -99,7 +112,7 @@ def supGet(sup)
     	answer={}
    	
    		#get addresses ##UPDATE
-    	answer = ApiToJSON.get("https://sendgrid.com/api/#{sup}.get.json?&api_user=#{@api_user}&api_key=#{@api_key}#{@suppression_start}&offset=#{offset}&limit=1000")
+    	answer = HttpToJSON.get("/api/#{sup}.get.json?&api_user=#{@api_user}&api_key=#{@api_key}#{@suppression_start}&offset=#{offset}&limit=1000")
     	answer[:body].each do |a| 
         emails << a["email"].to_s
         @total_count[sup.to_sym] += 1
@@ -146,7 +159,7 @@ suppressions.each do |sup|
 	#for each address chunk, remove from contact db
   email_array.each_slice(100) do |e| 
     
-    response = ApiToJSON.delete("https://api.sendgrid.com/v3/contactdb/recipients", e)
+    response = HttpToJSON.delete("/v3/contactdb/recipients", e)
 
     #if we hit rate limit, wait for reset
     sleep( response[:reset] - Time.now() ) if response[:limit] <= 1
