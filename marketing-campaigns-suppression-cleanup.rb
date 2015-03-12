@@ -32,72 +32,17 @@ end
 
 module HttpToJSON
   include HTTParty
-  base_uri 'api.sendgrid.com'
+  base_uri 'https://api.sendgrid.com'
   format :json
   basic_auth 'username', 'password'
-  debug_output
-end
-
-module ApiToJSON
-	def self.construct_uri(path)
-		return URI.parse(path)
-	end
-
-	def self.get(path)
- 		uri = construct_uri path
-		http = Net::HTTP.new(uri.host, uri.port)
-    http.read_timeout = 5000
-    http.use_ssl = true
-		req = Net::HTTP::Get.new(uri.request_uri)
-		req["Authorization"] ='SOMEAUTH'
-    print http.request(req)
-  end
-
-  def self.post(path, payload)
-    uri = construct_uri path
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.read_timeout = 5000
-    http.use_ssl = true
-    req = Net::HTTP::Post.new(uri.request_uri)
-    req.body = payload.to_json
-    req["Authorization"] ='SOMEAUTH'
-    req["Content-Type"] = "application/json"
-    req["Accept"] = "application/json"
-    print http.request(req)
-  end
-
-  def self.delete(path, payload)
-    uri = construct_uri path 
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.read_timeout = 5000
-    http.use_ssl = true
-    req = Net::HTTP::Delete.new(uri.request_uri)
-    req.body = payload.to_json
-    req["Authorization"] ='SOMEAUTH'
-    req["Content-Type"] = "application/json"
-    req["Accept"] = "application/json"
-    print http.request(req)
-  end
- 
-  def self.print(response)
-    begin
-      #puts JSON.pretty_generate(JSON.parse(response.body))
-      resp_hash = {code: response.code, body: JSON.parse(response.body), limit: response['X-RateLimit-Remaining'], reset: response['X-RateLimit-Reset']}
-      #return JSON.parse(response.body)
-      return resp_hash
-    rescue
-      puts response
-    end
-  end
+  #debug_output
 end
 
 def supGet(sup)
 	emails = []
 	response = HttpToJSON.get("/api/#{sup}.count.json?api_user=#{@api_user}&api_key=#{@api_key}")
-  binding.pry()
-  puts response.body, response.code, response.message, response.headers.inspect
-  answer = JSON.parse(response.body)
-
+  #puts response.body, response.code, response.message, response.headers.inspect
+  answer = response.parsed_response # since SG APIv1 has the wrong Content-Type header
 
 	if answer["error"]
    		errLog("Error: #{answer}\nskipping #{sup}.")
@@ -109,11 +54,12 @@ def supGet(sup)
 	
    	until offset >= offset_max
    		log("List: #{sup}  Offset: #{offset}  Max: #{offset_max}  Remaining: #{(offset_max.to_i - offset.to_i)}")
-    	answer={}
    	
    		#get addresses ##UPDATE
-    	answer = HttpToJSON.get("/api/#{sup}.get.json?&api_user=#{@api_user}&api_key=#{@api_key}#{@suppression_start}&offset=#{offset}&limit=1000")
-    	answer[:body].each do |a| 
+    	response = HttpToJSON.get("/api/#{sup}.get.json?&api_user=#{@api_user}&api_key=#{@api_key}#{@suppression_start}&offset=#{offset}&limit=1000")
+    	puts response.body, response.code, response.message, response.headers.inspect
+      
+      response.parsed_response.each do |a| # since SG APIv1 has the wrong Content-Type header
         emails << a["email"].to_s
         @total_count[sup.to_sym] += 1
       end
@@ -159,10 +105,11 @@ suppressions.each do |sup|
 	#for each address chunk, remove from contact db
   email_array.each_slice(100) do |e| 
     
-    response = HttpToJSON.delete("/v3/contactdb/recipients", e)
+    response = HttpToJSON.delete("/v3/contactdb/recipients", query: e)
 
     #if we hit rate limit, wait for reset
-    sleep( response[:reset] - Time.now() ) if response[:limit] <= 1
+    puts response.body, response.code, response.message, response.headers.inspect 
+    #sleep( response[:reset] - Time.now() ) if response[:limit] <= 1
 
     #log errors and move on
     unless response[:code] == "204"
