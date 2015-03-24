@@ -1,7 +1,7 @@
-# Quereis Accounts Suppression lists. 
+# Queries Account Suppression lists. 
 # Removes those addresses from the Marketing Campaign Beta Contact Database, to avoid overcharge.
 #
-# Requires: SG Account Credential with API Permissions.
+# Requires: SG Account Credentials with API Permissions.
 # Optional: Epoch Timestamp to begin cleanup from, so that the script doesn't iterate through the full list the entire time.
 #
 # takes an argument for a tmp file that has a JSON array of keys & values for api_user, api_key, and timestamp.
